@@ -91,6 +91,88 @@ Decisions across 6 planning iterations (2026-05-24). Each entry records what was
 
 ---
 
+## Iteration 13 — STOP AND REDESIGN (2026-05-24)
+
+Mid-pipeline, user delivered a thorough internal critique. Key points accepted:
+
+1. **Reference selection circularity**: "Ref A is healthy → Ref A is production" is
+   a tautology. We picked the reference under which our metric is well-behaved,
+   then declared the metric well-behaved. The underlying issue is that
+   $\cos(h_{28}, h_{\text{norm}}) \approx -0.013$ — the trajectory does *not*
+   approach $h_{\text{norm}}$ in direction across layers 0–28; block 30 performs
+   a rotation that lands on $h_{\text{norm}}$. So "settling toward $h_{\text{norm}}$"
+   is not what any direction-cosine metric is measuring in our range.
+
+2. **Running-min single-dip vulnerability**: M1/M2/M4/M5 used running-min envelope,
+   meaning a single noisy dip below γ at layer 5 locks $c(t) = 5$. M3 alone used
+   persistence ("all subsequent ≤ γ"). The 0517 meeting explicitly required
+   persistence universally.
+
+3. **M2 conceptual misnomer**: Evo 2 pre-RMSNorm magnitude grows monotonically;
+   $|r - 1|$ measures *residual accumulation* (a transformer architectural fact),
+   not semantic settling. Calling it "magnitude settling" overclaims.
+
+4. **M6 mislabeled as metric**: it's a Pythagorean consistency identity for
+   M1+M2; should be a unit test, not a settling cell.
+
+5. **Diagonal Σ for M4 ignores superposition**: GLM features are correlated;
+   diagonal Σ assumes independence. (Concurrent with iter 12's M4 revision.)
+
+6. **Downstream validation absent**: 0517 meeting required external evidence
+   (downstream task, perplexity, splicing dependence, etc.). We have none yet.
+
+7. **q70 chosen arbitrarily**: inherited from gDTR without sensitivity ablation.
+
+### Stop action
+
+chr22 forward halted at 4,500/12,978 windows (Ctrl-C in tmux).
+- `_OLD_tier1_settling_design_v1.parquet` archived (4,500 windows under v1 design)
+- `tier2_scalars_subset.h5` and `tier3_raw.h5` preserved (70/100 subset windows; γ-independent raw scalars + raw h_ℓ) — used as validation testbed for v2 design without re-forward
+- `_REDESIGN_STOP.json` records the stop reason + v2 changes
+
+### Design v2 changes (committed)
+
+Locked changes (see `metric_definitions.md` v2 for math):
+- **Settling 3-definition split**: Def 1 (trajectory stops, M3), Def 2 (→h_29, M1/M5/M4_set Ref A), Def 3 (→h_norm — *no metric captures; reported as honest limitation*)
+- **M2 renamed**: "Residual accumulation magnitude" — diagnostic only
+- **M6 demoted**: explicit "consistency check / unit test"
+- **Persistence check** $W = 3$ rolling window applied to **all settling metrics** except M3 (strict suffix) and M4_set (monotone by construction)
+- **M4_set adoption**: Σ_ref-whitened settling distance (replaces v1 Mahalanobis diagonal), Ledoit-Wolf shrinkage, no running-min
+- **M5 Option B locked**: RMSNormed trajectory under Ref B (numerator + denom consistent)
+- **α/β ablation matrix** for M3: (1,0), (0,1), (1,1), (1,0.5), (0.5,1)
+- **γ ablation**: percentiles {50, 70, 90} reported in supplementary; production γ chosen by downstream task signal
+
+### Phase Pre-V validation (added)
+
+Before any new full forward, a **downstream validation experiment** must pass:
+
+> Splice canonical vs non-canonical settling distribution test
+> - Use 70 subset windows' raw h_ℓ already on disk
+> - Input: `chr22_splice_class_labels.npy` (codebook: 1=GT-AG donor canonical, 5=non-canonical donor)
+> - For each metric × ref cell, settling depth at splice donor positions; split canonical vs non-canonical
+> - Pass criterion: ≥1 metric × ref with |d| ≥ 0.2, p < 0.05
+
+This addresses critique point (D) "검증의 부재" before committing more compute.
+
+### What got preserved from v1
+
+| Asset | Status |
+|---|---|
+| `population_stats/per_layer_*.npy` | Reusable (design-independent) |
+| `population_stats/sigma_diagonal.npy` | Superseded by full Σ_ref (v2); keep for diff |
+| `chr22/tier2_scalars_subset.h5` (70 windows) | Reusable for v2 metric recomputation |
+| `chr22/tier3_raw.h5` (70 windows) | Reusable for v2 metric recomputation + M4_set |
+| `subset_window_ids.json` | Reusable |
+| `window_metadata.parquet` | Reusable |
+
+### What got archived (v1, not deleted)
+
+| Asset | Reason |
+|---|---|
+| `_OLD_tier1_settling_design_v1.parquet` | Settling depths under v1 (wrong γ, wrong persistence, wrong M4 placeholder). Kept for v1→v2 diff. |
+
+---
+
 ## Open questions that remain open
 
 See [`../PLAN.md`](../PLAN.md) §7 for the live list (12 open questions, mostly S1-gating decisions).
