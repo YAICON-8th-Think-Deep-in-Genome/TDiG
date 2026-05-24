@@ -18,18 +18,25 @@ Project setup. Plan is locked through iteration 6 (see [`PLAN.md`](PLAN.md)). Im
 - [`docs/design_decisions.md`](docs/design_decisions.md) — Decision log across iterations 1–6
 - [`docs/preregistration.md`](docs/preregistration.md) — (stub) for hypothesis pre-registration if added back later
 
-## The 5-metric family at a glance
+## The 5-metric family (design v2 — see [`docs/metric_definitions.md`](docs/metric_definitions.md))
 
 | ID | Name | What it measures | Reference |
 |---|---|---|---|
-| M1 | $c_{\text{dir}}$ | Direction settling (cosine) | dependent (3 variants) |
-| M2 | $c_{\text{mag}}$ | Magnitude settling ($\|r-1\|$) | dependent (2 variants) |
-| M3 | $c_{\text{geo}}$ | Trajectory dynamics (velocity + curvature) | **reference-free** |
-| M4 | $c_M$ | Mahalanobis (distribution-aware) | dependent (3 variants) |
-| M5 | $c_\tau$ | Path tortuosity (cumulative efficiency) | dependent (3 variants) |
-| (M6) | $D_{L_2}$ | L2 residual — consistency check (M1+M2 function) | dependent |
+| M1 | $c_{\text{dir}}$ | Direction settling (cosine), persistence W=3 | dependent (3 variants A/B/C) |
+| M2 | "Residual accumulation magnitude" | Pre-norm magnitude ratio $\|r-1\|$ (diagnostic) | dependent (Ref A only healthy) |
+| M3 | $c_{\text{geo}}$ | Trajectory dynamics (velocity + curvature), 5 α/β cells | **reference-free** |
+| **M4** | $c_{M,\text{set}}$ | **Reference-whitened settling distance** $\sqrt{(h_\ell-h_{\text{ref}})^\top \Sigma_{\text{ref}}^{-1} (h_\ell-h_{\text{ref}})}$ (Σ_ref shrinkage, monotone) | dependent (3 variants) |
+| M5 | $c_\tau$ | Path tortuosity (M5 Option B locked) | dependent (3 variants) |
+| (M6) | $D_{L_2}$ | Consistency check (M1+M2 function, NOT a metric) | unit test |
 
-Total: **14 settling cells**, all from a single forward pass.
+**Design v2 (locked 2026-05-24)**:
+- **Settling concept split into 3 explicit definitions**: Def 1 (M3 trajectory stops), Def 2 (M1/M5/M4_set Ref A toward h_29), Def 3 (h_norm — no metric captures; honest limitation)
+- **Persistence-based settling** (rolling window W=3) replaces single-dip-vulnerable running-min envelope
+- **M4_set adoption**: full Σ_ref-whitening with Ledoit-Wolf shrinkage, monotone-decrease by construction (no envelope needed)
+- **M5 Option B**: RMSNormed trajectory for Ref B (numerator+denominator consistent)
+- **γ ablation matrix**: q50/q70/q90 percentiles
+
+Total: **17 settling cells**, all from a single forward pass.
 
 ## Quickstart (future, once implemented)
 

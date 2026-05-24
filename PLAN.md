@@ -25,14 +25,16 @@ For decision history (what was tried and discarded across iterations 1–6), see
 
 ### 2.1 Definitions
 
+**Design v2 (locked 2026-05-24)** — see [`docs/metric_definitions.md`](docs/metric_definitions.md):
+
 | ID | Name | Definition | Reference | Axis |
 |---|---|---|---|---|
-| **M1** | $c_{\text{dir}}$ | $D_{\text{dir}}(\ell, t) = 1 - \cos(h_\ell, h_{\text{ref}}) \le \gamma_{\text{dir}}$ (running-min, q70 calibration) | dependent (3 variants) | direction (pointwise) |
-| **M2** | $c_{\text{mag}}$ | $D_{\text{mag}}(\ell, t) = \lvert r - 1\rvert$ where $r = \lVert h_\ell\rVert / \lVert h_{\text{ref}}\rVert$, $\le \gamma_{\text{mag}}$ | dependent (2 variants; B degenerate) | magnitude (pointwise) |
-| **M3** | $c_{\text{geo}}$ | $g_\ell = \alpha\tilde v_\ell + \beta\tilde\kappa_\ell$; $c_{\text{geo}} = \min\{\ell : g_k \le \tau \;\forall k \in [\ell, L-2]\}$ | **independent** | trajectory dynamics (pointwise) |
-| **M4** | $c_M$ | $D_M(\ell, t) = \sqrt{(h_\ell - h_{\text{ref}})^T \Sigma_\ell^{-1} (h_\ell - h_{\text{ref}})} \le \gamma_M$ | dependent (3 variants) | distribution anisotropy (pointwise) |
-| **M5** | $c_\tau$ | $\tau(\ell, t) = \frac{\sum_{k=\ell}^{28} \lVert h_{k+1} - h_k\rVert}{\lVert h_\ell - h_{\text{ref}}\rVert + \epsilon}$; first $\ell$ with $\tau \le \gamma_\tau$ | dependent (3 variants) | path efficiency (cumulative) |
-| (M6) | $D_{L_2}$ | $\lVert h_\ell - h_{\text{ref}}\rVert_2 / \lVert h_{\text{ref}}\rVert_2$ — function of M1 and M2 | dependent | consistency check / single-scalar baseline |
+| **M1** | $c_{\text{dir}}$ | $D_{\text{dir}}(\ell, t) = 1 - \cos(h_\ell, h_{\text{ref}})$. Persistence W=3 with max_layer clip (L* for Ref A/B, L-1 for Ref C). q70 calibration. | dependent (3 variants) | direction (pointwise) |
+| **M2** | "Residual accumulation magnitude" | $D_{\text{mag}}(\ell, t) = \lvert r - 1\rvert$ where $r = \lVert h_\ell\rVert / \lVert h_{\text{ref}}\rVert$. Renamed from "magnitude settling" — captures residual accumulation (pre-RMSNorm transformer artifact). | dependent (Ref A only healthy) | magnitude (diagnostic) |
+| **M3** | $c_{\text{geo}}$ | $g_\ell = \alpha\tilde v_\ell + \beta\tilde\kappa_\ell$ with persistence W=3. **5 α/β cells**: {(1,0), (0,1), (1,1), (1,0.5), (0.5,1)} for ablation. | **independent** | trajectory dynamics (pointwise) |
+| **M4** | $c_{M,\text{set}}$ **Reference-whitened settling distance** | $D_{M,\text{set}}(\ell, t) = \sqrt{(h_\ell - h_{\text{ref}})^T \Sigma_{\text{ref}}^{-1} (h_\ell - h_{\text{ref}})}$. **$\Sigma_{\text{ref}}$ = single covariance of reference vector**, Ledoit-Wolf shrinkage. **Monotone-decrease by construction → no running-min**. Renamed from v1 "Mahalanobis". | dependent (3 variants) | reference-whitened distance |
+| **M5** | $c_\tau$ | $\tau(\ell, t) = \frac{\sum_{k=\ell}^{L^*-1} \lVert h^{\text{state}}_{k+1} - h^{\text{state}}_k\rVert}{\lVert h^{\text{state}}_\ell - h^{\text{state}}_{\text{ref}}\rVert + \epsilon}$. **Option B locked**: Ref B uses RMSNormed trajectory (numerator+denom consistent). Persistence W=3. | dependent (3 variants) | path efficiency (cumulative) |
+| (M6) | $D_{L_2}$ | Consistency check / unit test (NOT a metric). Used to verify M1+M2 decomposition. | dependent | check only |
 
 ### 2.2 M3 c_geo details (the principled trajectory metric)
 
@@ -58,7 +60,7 @@ For decision history (what was tried and discarded across iterations 1–6), see
 | M1 $c_{\text{dir}}$ | ✓ | | | | | |
 | M2 $c_{\text{mag}}$ | | ✓ | | | | |
 | M3 $c_{\text{geo}}$ | partial ($\kappa$) | partial ($v$) | | ✓ | | ✓ |
-| M4 $c_M$ | partial | partial | ✓ | | | |
+| M4 $c_{M,\text{set}}$ | partial | partial | ✓ | | | |
 | M5 $c_\tau$ | | | | | ✓ | |
 
 5 metrics cover 5 of 6 axes. The missing cell ("reference-free cumulative") is a future-work candidate.
@@ -84,11 +86,11 @@ Three variants of the reference frame, applied uniformly to all reference-depend
 | M1 $c_{\text{dir}}$ | ✓ | ✓ | ✓ |
 | M2 $c_{\text{mag}}$ | ✓ | ⚠ degenerate | ✓ |
 | M3 $c_{\text{geo}}$ | (reference-free — no variants) | | |
-| M4 $c_M$ | ✓ | ✓ | ✓ |
+| M4 $c_{M,\text{set}}$ | ✓ | ✓ | ✓ |
 | M5 $c_\tau$ | ✓ | ✓ | ✓ |
 | M6 $D_{L_2}$ | ✓ | (degenerate possible) | ✓ |
 
-**Total cell count: 14 main cells** (M1×3 + M2×2 + M3×1 + M4×3 + M5×3 + M6×2). All computed from a single forward pass.
+**Total cell count: 17 main settling cells** (M1×3 + M2×1 + M3×5 α/β + M4_set×3 + M5×3 + M6 not counted as metric). Plus 3 diagnostic cells (M2 Ref B/C, M4_set degenerates).  All computed from a single forward pass with v2 architecture (see [`docs/metric_definitions.md`](docs/metric_definitions.md)).
 
 ### 3.3 Diagnostic value of the variant matrix
 - **A ↔ C**: effect of removing $\gamma$ asymmetry
@@ -214,7 +216,7 @@ See [`docs/design_decisions.md`](docs/design_decisions.md) §Assets for the full
 | 2 | M2 Ref B handling — degenerate report only? define $\gamma$-only variant? | S1 |
 | 3 | M3 $c_{\text{geo}}$ $(\alpha, \beta)$ — start $(1, 1)$, tune after calibration | S1 |
 | 4 | M3 "all $k$" range — $[\ell, L-2]$ vs $[\ell, \ell+5]$ rolling | S1 |
-| 5 | M4 $\Sigma$ estimation — Ledoit-Wolf vs diagonal vs PCA-top-k | S1 (recommend: diagonal first) |
+| 5 | ~~M4 $\Sigma$ estimation choices~~ | **RESOLVED**: M4 → M4_set with Σ_ref full-rank + Ledoit-Wolf (λ clipped at 0.95 in practice → Σ near scaled identity) |
 | 6 | CKA control threshold for M3 | S1 |
 | 7 | V1 PCA mode — raw / per-layer-centered / tuned-lens | S5 (recommend: per-layer-centered + raw) |
 | 8 | V5 headline pair — $(c_{\text{dir}}, c_{\text{mag}})$ vs $(c_{\text{dir}}, c_{\text{geo}})$ | S5 |
