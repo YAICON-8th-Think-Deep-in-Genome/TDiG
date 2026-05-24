@@ -79,9 +79,14 @@ def main():
     parser.add_argument("--n-windows", type=int, default=100)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
-        "--windows-tsv",
+        "--windows-tsv-chr22",
         type=Path,
         default=Path("/root/gDTR/data/baselines/chr22_windows.tsv"),
+    )
+    parser.add_argument(
+        "--windows-tsv-chr17",
+        type=Path,
+        default=Path("/root/gDTR/data/baselines/chr17_windows.tsv"),
     )
     parser.add_argument(
         "--out",
@@ -90,22 +95,35 @@ def main():
     )
     args = parser.parse_args()
 
-    df = pd.read_csv(args.windows_tsv, sep="\t")
-    print(f"loaded {len(df)} chr22 windows")
-    print(df[CONTEXT_COLS].describe().T)
+    out_obj = {"selection_seed": args.seed, "n_windows": args.n_windows}
 
-    result = select_stratified(df, args.n_windows, args.seed)
-    result_full = {
-        "chr22": result["selected"],
-        "n_windows": len(result["selected"]),
-        "selection_seed": result["selection_seed"],
-        "stratification": result["stratification"],
-        "source": str(args.windows_tsv),
-    }
+    # chr22
+    if args.windows_tsv_chr22.exists():
+        df22 = pd.read_csv(args.windows_tsv_chr22, sep="\t")
+        print(f"loaded {len(df22)} chr22 windows")
+        r22 = select_stratified(df22, args.n_windows, args.seed)
+        out_obj["chr22"] = r22["selected"]
+        out_obj["chr22_stratification"] = r22["stratification"]
+        out_obj["chr22_source"] = str(args.windows_tsv_chr22)
+        print(f"  picked {len(r22['selected'])} chr22 subset windows")
+    else:
+        print(f"  chr22 windows file not found: {args.windows_tsv_chr22}")
+
+    # chr17 (use a different seed so chr17 picks are not identical patterns to chr22)
+    if args.windows_tsv_chr17.exists():
+        df17 = pd.read_csv(args.windows_tsv_chr17, sep="\t")
+        print(f"loaded {len(df17)} chr17 windows")
+        r17 = select_stratified(df17, args.n_windows, args.seed + 1)
+        out_obj["chr17"] = r17["selected"]
+        out_obj["chr17_stratification"] = r17["stratification"]
+        out_obj["chr17_source"] = str(args.windows_tsv_chr17)
+        print(f"  picked {len(r17['selected'])} chr17 subset windows")
+    else:
+        print(f"  chr17 windows file not found: {args.windows_tsv_chr17}")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(result_full, indent=2))
-    print(f"\nwrote {len(result['selected'])} window IDs to {args.out}")
+    args.out.write_text(json.dumps(out_obj, indent=2))
+    print(f"\nwrote subset to {args.out}")
 
 
 if __name__ == "__main__":
