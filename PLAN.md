@@ -100,10 +100,16 @@ Three variants of the reference frame, applied uniformly to all reference-depend
 
 ## 4. Experimental sequence (6 stages)
 
-### S1. Compute (single forward pass)
-- Input: chr22 12,978 windows × 6 kb hidden-state cache (server)
-- Output: `results/settling_table.parquet`, schema `(token_id, position, context, metric_id, ref_id, c_value)`
-- Approximate size: 14 cells × 77 M positions = ~850 M rows
+> **Pipeline architecture**: see [`docs/reproduction.md`](docs/reproduction.md) for the 3-phase aggressive plan (batched + concurrent, ~60–75 min wall on H200). S1 below corresponds to the server-side compute (phases A, B, C); S2–S6 are local post-processing.
+
+### S1. Compute (3-phase server pipeline, single forward per chromosome)
+- Phase A: `11_smoke_batched.py` — verify batch=8 vs batch=1 equivalence
+- Phase B: `15_chr22_forward.py --with-crossarch` — chr22 + 4-FM concurrent on CUDA streams
+- Phase C: `16_chr17_forward.py` + `18_variant_forward.py` — concurrent on same H200 with cooperative memory budget
+- Population stats + Σ + γ calibration: `10_population_stats.py` (must precede all phases)
+- Output: `data/cache/{population_stats, chr22, chr17, crossarch, variants}/`
+- Approximate sizes: chr22 70 GB (full Tier 1+2+3), chr17 21 GB (trimmed), variants 6 GB, crossarch 20 GB
+- Resume: per-window done flags + atomic writes
 
 ### S2. Per-cell sanity (3 gates × 14 cells = 42 runs)
 
