@@ -241,34 +241,62 @@ User reframe: "research goal is interpretability and new discrimination capabili
 
 ---
 
-## §H Roadmap — designed but not started
+## §H Roadmap
 
-### §H1 Per-pair 7×7 context separation matrix
-- All 7 contexts × all 7 contexts → 21 unique Cohen d per (layer, cell)
-- L=27 snapshot heatmap = "context hierarchy" figure
+### §H1 7×7 context separation matrix — DONE ★★★★
+- **Script**: `scripts/29_context_separation_matrix.py`
+- **Output**: `results/context_separation/`
+- **Headline**: **coding_exon vs intron Cohen d = −0.94 at M3_geo_a0.0_b1.0 (curvature-only) — LARGER than splice_donor vs intron (0.81)**.
+- splice_donor vs splice_acceptor d = −0.11 (barely separable, biologically expected — both junctions).
+- M3_geo family wins 13 of 21 context pairs as best discriminator; M5_tau_refB wins 6 (splice-related).
+- M4_set wins 0 pairs (Σ_ref → identity collapse hurts discrimination).
 
-### §H2 Intron-outlier functional element discovery
-- Within "intron" tokens, top 1% with splice-like settling
-- Cross-reference to ENCODE cCRE / TFBS / GWAS loci
-- *Unsupervised functional element discovery* — paper highlight candidate
+### §H2 Intron-outlier functional element discovery — RUNNING
+- **Script**: `scripts/30_intron_outlier_discovery.py`
+- **Output (pending)**: `results/intron_outlier/`
+- Identifies intron tokens with splice-like settling (top 0.5% by 5 cells), measures distance to nearest splice site for enrichment.
 
-### §H3 L29 phase transition mechanism (SVD)
-- L28→L29 and L29→L30 as linear maps, SVD for rotation structure
-- Connects §B1, §C1, §A1 findings
+### §H3 L29 SVD mechanism — DONE ★★★★★
+- **Script**: `scripts/31_L29_svd_mechanism.py`
+- **Output**: `results/L29_svd/`
+- **Headline**: linear transitions h_{ℓ+1} ≈ T_ℓ @ h_ℓ fitted over 50K tokens:
 
-### §H4 Per-position multi-task functional prediction
+| Transition | R² | condition # | rotation_score |
+|---|---|---|---|
+| L15→L16 | 0.997 | 12.8 | +0.80 (smooth) |
+| L25→L26 | 0.972 | 26.4 | +0.66 (smooth) |
+| L27→L28 | 0.916 | 1.3e+07 | −7.05 (BREAKS) |
+| **L28→L29** | **−6.18** | **1.7e+10** | **−44.5 (MASSIVE non-linearity)** |
+| **L29→L30** | **−237** | **3.2e+12** | **−58.1 (CATASTROPHIC)** |
+| L30→L31 | 1.000 | 4.0e+05 | −6.13 (passthrough — block 31 = idle, confirmed) |
+
+→ Mechanistic confirmation of L29 phase transition observed across all earlier analyses (§B1 probing AUROC crash, §C1 PC1 correlation collapse, §A1 variant AUROC drop). Block 31 idle-passthrough confirmed quantitatively (R²=1.0).
+
+### §H4 Per-position multi-task functional prediction — not started
 - TDiG features → classifier(is_splice / is_TFBS / is_cCRE / is_GWAS)
-- Per-task AUROC quantifies TDiG's *discovery* value
 
-### §H5 Layer-targeted activation patching (GPU)
-- Per-variant, patch h_alt → h_ref at one layer, measure downstream Δc
-- Causal critical layer identification per variant
+### §H5 GPU activation patching (descriptive attribution) — DONE
+- **Script**: `scripts/32_activation_patching.py`
+- **Output**: `results/activation_patching/`
+- 10 variants × 32 layers ΔH norm at variant position. **Per-category mean ΔH explosion at L29→L30**:
 
-### §H6 Composition-matched variant control (GPU, expansion of §G5)
-- Full GC + dinucleotide matching (not just random ALT)
+| Layer | P_LP mean ΔH | B_LB mean ΔH | ratio |
+|---|---|---|---|
+| L27 | 35.7 | 21.8 | 1.6× |
+| L28 | 7,128 | 6,345 | 1.1× |
+| **L29** | **7.24 × 10⁶** | **5.34 × 10⁶** | **1.36×** |
+| **L30** | **1.99 × 10¹²** | **1.21 × 10¹²** | **1.65×** |
+| L31 | 1.99 × 10¹² | 1.21 × 10¹² | 1.65× (passthrough = L30) |
 
-### §H7 Cross-architecture (HyenaDNA, NT-v2)
-- Generality test for L29 phase transition + bidirectional settling
+→ **ΔH scale explodes 12 orders of magnitude through L29-L30** but **variant pathogenicity signal (P/B ratio) is PRESERVED at 1.36-1.65×**. Rotation block changes representation scale, not relative variant ordering. Note: true causal patching requires model hooks; this is descriptive per-layer attribution. Heatmap currently linear-scale (L30-L31 saturates colormap; log-scale rerun TBD).
+
+### §H6 Composition-matched variant control — partial via §G5 GPU random-alt
+- §G5 done: real vs random ALT ΔH ratio 1.03-1.05 at L=8, p=0.58 (NOT significant)
+- → Variant ΔH at headline layer reflects POSITION SENSITIVITY, not allele-specific biology
+- Full GC+dinucleotide composition matching = future work
+
+### §H7 Cross-architecture (HyenaDNA, NT-v2) — future work
+- ~6h GPU each, deferred until paper structure stable
 
 ---
 
