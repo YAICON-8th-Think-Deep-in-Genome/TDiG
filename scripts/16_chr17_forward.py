@@ -37,7 +37,7 @@ def main():
     parser.add_argument("--subset-file", type=Path,
                         default=Path("/root/TDiG/data/subset_window_ids.json"))
     parser.add_argument("--gamma-file", type=Path,
-                        default=Path("/root/TDiG/data/cache/population_stats/gamma_calibration.json"))
+                        default=Path("/root/TDiG/data/cache/population_stats/gamma_calibration_v2.json"))
     parser.add_argument("--out-dir", type=Path,
                         default=Path("/root/TDiG/data/cache/chr17"))
     parser.add_argument("--max-windows", type=int, default=0)

@@ -48,3 +48,7 @@ logs/
 # Backups
 *.bak
 *~
+
+# Large analysis artifacts (regenerable from scripts)
+results/analysis_T123/pca_proj.npy
+*.h5
