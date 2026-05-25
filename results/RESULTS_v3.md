@@ -285,10 +285,30 @@ User reframe: "research goal is interpretability and new discrimination capabili
 
 → Mechanistic confirmation of L29 phase transition observed across all earlier analyses (§B1 probing AUROC crash, §C1 PC1 correlation collapse, §A1 variant AUROC drop). Block 31 idle-passthrough confirmed quantitatively (R²=1.0).
 
-### §H4 Per-position multi-task functional prediction — RUNNING
+### §H4 Per-position multi-task functional prediction — DONE ★★★★
 - **Script**: `scripts/34_per_position_multitask.py`
-- 6-way softmax LR per layer, balanced 3K per class
-- Output: `results/multitask_per_position/`
+- **Output**: `results/multitask_per_position/`
+- 7-way softmax LR per layer, balanced 3K per class (random baseline = 14.3%)
+- **Per-layer accuracy**:
+  - L0: 24.7% (input baseline, ~1.7× random)
+  - L3: 63.4% (early peak)
+  - L4-L9: 51-57% (dip)
+  - L10-L23: 56-62% (mid plateau)
+  - **L24: 73.7% ★ DEEPEST PEAK** (5.2× random)
+  - L25-L27: 68-72%
+  - L28: 49.0% (drop)
+  - **L29: 39.7% ★ CRASH** (-34pt below L24 — most dramatic L29 confirmation yet)
+  - L30-L31: 38.5% (plateau at recovery floor)
+- **Best layer per class (AUROC OVR)**:
+  - 5utr: 0.987 @ L24
+  - 3utr: 0.975 @ L24
+  - splice_donor: 0.960 @ L24
+  - 3utr-coding_exon: 0.924 @ L24
+  - splice_acceptor: 0.947 @ L25
+  - intron: 0.917 @ L24
+  - intergenic: 0.914 @ L24
+- **All 7 classes peak at L24-L25** — single deepest context-encoding layer is L24 (right at curvature-trough zone before L27).
+- **5th independent confirmation of L29 phase transition** — multi-class accuracy crashes from L24's 0.74 to L29's 0.40.
 
 ### §H8 VUS feature importance + per-layer-only baseline — DONE
 - **Script**: `scripts/35_vus_feature_importance.py`
