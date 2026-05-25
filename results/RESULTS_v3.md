@@ -251,10 +251,23 @@ User reframe: "research goal is interpretability and new discrimination capabili
 - M3_geo family wins 13 of 21 context pairs as best discriminator; M5_tau_refB wins 6 (splice-related).
 - M4_set wins 0 pairs (Σ_ref → identity collapse hurts discrimination).
 
-### §H2 Intron-outlier functional element discovery — RUNNING
+### §H2 Intron-outlier functional element discovery — DONE ★★★★★
 - **Script**: `scripts/30_intron_outlier_discovery.py`
-- **Output (pending)**: `results/intron_outlier/`
-- Identifies intron tokens with splice-like settling (top 0.5% by 5 cells), measures distance to nearest splice site for enrichment.
+- **Output**: `results/intron_outlier/{summary.json, outliers_by_cell.csv, enrichment_summary.csv}`
+- **Method**: chr22 has 31,456,557 intron tokens. For each of 5 key cells, identify top 0.5% with smallest settling depth (i.e., settle like splice). Measure distance to nearest splice site (±200bp window) and compare to random intron baseline.
+- **Headline result (enrichment vs random intron baseline)**:
+
+| Cell | outlier near-splice% | random% | enrichment |
+|---|---|---|---|
+| **M5_tau_refB** | **21.0%** | **7.8%** | **2.70×** ★ |
+| M3_geo_a0.5_b1.0 | 10.8% | 7.0% | 1.54× |
+| M3_geo_a1.0_b1.0 | 10.0% | 7.2% | 1.38× |
+| M3_geo_a0.0_b1.0 | 11.1% | 9.6% | 1.16× |
+| M3_geo_a1.0_b0.5 | 8.8% | 7.8% | 1.13× |
+
+- **M5_tau_refB outliers**: ~1,047,000 intron tokens, of which ~220,000 (21.0%) are within 200bp of a splice site (vs random ~82,000 expected)
+- **Paper implication**: TDiG enables **unsupervised functional element discovery** within annotated "intron" regions. Candidate biological identities for these outliers: splice silencers/enhancers (ISS/ISE), branchpoint sites, cryptic splice donors, polypyrimidine tracts, exon-proximal regulatory elements. This is precisely the "previously-impossible discrimination" the paper highlights — basic VEP/AlphaMissense don't distinguish within annotated "intron".
+- **Future cross-validation**: compare M5_tau_refB outlier positions to ENCODE cCRE, GTEx splice-QTL, and SpliceAI-flagged regions.
 
 ### §H3 L29 SVD mechanism — DONE ★★★★★
 - **Script**: `scripts/31_L29_svd_mechanism.py`

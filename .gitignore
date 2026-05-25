@@ -52,3 +52,4 @@ logs/
 # Large analysis artifacts (regenerable from scripts)
 results/analysis_T123/pca_proj.npy
 *.h5
+results/intron_outlier/outliers_by_cell.csv
