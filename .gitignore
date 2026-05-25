@@ -55,3 +55,5 @@ results/analysis_T123/pca_proj.npy
 *.h5
 results/intron_outlier/outliers_by_cell.csv
 !results/intron_outlier/outliers_by_cell.csv.zip
+results/data_cache_minimal/
+data_cache_minimal/
