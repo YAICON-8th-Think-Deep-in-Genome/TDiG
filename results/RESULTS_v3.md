@@ -149,14 +149,33 @@ Local results are mirrored from `digitalocean-gpu:/root/TDiG/data/cache/_v2_anal
 
 ---
 
-## §E Bootstrap CIs on chr22 d-values — RUNNING
+## §E Bootstrap CIs on chr22 d-values — DONE
 
-- **Input**: tier1_settling_v2.parquet (chr22) + pos_labels
+- **Input**: tier1_settling_v2.parquet (chr22, 12,978 windows) + pos_labels
 - **Script**: `scripts/23_bootstrap_chr22_ci.py`
-- **Output (pending)**: `results/bootstrap_chr22_ci/`
-  - `bootstrap_d_ci.csv` — 17 cells × {mean_d, ci_low, ci_high, std, n=200}
+- **Output**: `results/bootstrap_chr22_ci/`
+  - `bootstrap_d_ci.csv` — 17 cells × {mean_d, ci_low, ci_high, std, n=200 iter}
   - `bootstrap_distributions.png` — histograms with 95% CI bars
-- **What it answers**: How wide are the 95% CIs on headline d-values like M3_geo_a0.5_b1.0 d=−0.85? Window-level bootstrap respects window independence.
+- **Headline (200 window-bootstrap iter, 95% CI tight: std~0.01)**:
+
+| Cell | mean d | 95% CI |
+|---|---|---|
+| M3_geo_a0.5_b1.0 | -0.801 | [-0.827, -0.775] |
+| M3_geo_a0.0_b1.0 | -0.780 | [-0.810, -0.754] |
+| M3_geo_a1.0_b1.0 | -0.574 | [-0.603, -0.545] |
+| M5_tau_refB | -0.426 | [-0.447, -0.404] |
+| M3_geo_a1.0_b0.5 | -0.335 | [-0.357, -0.313] |
+| M1_dir_refA | +0.301 | [+0.286, +0.318] |
+| M2_mag_refA | +0.178 | [+0.156, +0.198] |
+| M5_tau_refA | -0.171 | [-0.188, -0.156] |
+| M4_set_refA | -0.158 | [-0.172, -0.147] |
+| M1_dir_refB | +0.148 | [+0.132, +0.164] |
+| M3_geo_a1.0_b0.0 | +0.147 | [+0.131, +0.163] |
+| M1_dir_refC | -0.069 | [-0.085, -0.051] |
+| M5_tau_refC | +0.024 | [+0.014, +0.033] |
+| M2/M4 refB/C | 0.000 | (degenerate) |
+
+- All headline d-values **statistically distinct from zero** at 95% CI (no CI crosses 0 except the four degenerate cells and the near-zero M5_tau_refC). Bootstrap std consistently ~0.01 — chr22 window count (12,978) is more than sufficient for stable estimation.
 
 ---
 
@@ -199,15 +218,18 @@ User reframe: "research goal is interpretability and new discrimination capabili
   - Baseline ΔH agreement = 67.9%
 - **By consequence median VUS prob**: synonymous 0.05 (almost all benign, n=12), intron 0.27, 5utr 0.28, noncoding 0.32, 3utr 0.20, **missense 0.70 (mostly pathogenic, n=2,506)**
 
-### §G4 Cryptic synonymous splice candidates — RUNNING
+### §G4 Cryptic synonymous splice candidates — DONE (weak signal)
 - **Input**: variant_scalars.parquet + consequence labels (synonymous + intron reference)
 - **Script**: `scripts/28_cryptic_synonymous_splice.py`
-- **Output (pending)**: `results/cryptic_synonymous/`
-  - `synonymous_signature.csv` — per-variant shape features
-  - `cryptic_candidates.csv` — top 10% splice-like score variants (candidate cryptic splice)
-  - `shape_examples.png` — ΔH curves: typical synonymous (L27 peak) vs cryptic (L8 peak)
-  - `summary.json` — P_LP enrichment fold in candidates vs non-candidates
-- **What it answers**: Of 1,796 synonymous variants, which have splice-like Δh profiles (L8 peak like intron variants instead of typical L27 peak)? These are candidates for cryptic splice site disruption — a "new discrimination" task SpliceAI/Pangolin may miss.
+- **Output**: `results/cryptic_synonymous/`
+- **Findings**:
+  - 1,808 synonymous variants analyzed; top 10% by `splice_like_score = mean(ΔH L5-L10) / mean(ΔH L21-L28)` = 181 candidates
+  - P_LP rate in candidates: 1.66% (3/181)
+  - P_LP rate in non-candidates: 1.17% (19/1627)
+  - **Enrichment fold: 1.42×** (weak, not statistically compelling)
+  - Candidate genes: ATM 39, MSH2 35, RB1 23, EGFR 21, TP53 12
+- **Interpretation**: Weak enrichment. The synonymous variant cohort is heavily B_LB-skewed (22 P / 1774 B) so we lack power for the cryptic splice detection task. Also, our shape signature is naive (single ratio); a multi-feature classifier or SpliceAI cross-validation would be more rigorous.
+- **Paper status**: Negative/weak result, currently not headline material. Could be expanded as a methodology demonstration ("TDiG identifies layer-shape outliers within synonymous variants for further investigation").
 
 ### §G5 GPU random-alt biological validation — RUNNING (after bfloat16 fix)
 - **Input**: 300 P_LP + 300 B_LB variants + hg38 fasta + Evo 2 7B
