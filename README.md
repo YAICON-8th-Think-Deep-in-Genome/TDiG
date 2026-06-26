@@ -1,6 +1,6 @@
 # TDiG — Think Deep in Genome
 
-**YAICON 8th Hackathon Project · Team 띵디지놈**
+**YAICON 8th 1st Prize · Team 띵디지놈**
 
 Layer-wise residual-stream settling analysis for genomic foundation models.
 
